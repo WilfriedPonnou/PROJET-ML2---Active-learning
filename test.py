@@ -38,6 +38,16 @@ def dataset_preprocessing(df):
     #return the two dataframes
     return df, transformed_df
 
+def compare_label(df):
+    nb_col = len(df.columns) - 2
+    list_of_columns = list(df.index)
+    for i in range(nb_col):
+        column = list_of_columns[i]
+        last_column  = df.iloc[: , -1]
+        
+        plt.figure(i)
+        sns.countplot(x=df[column], data=last_column)
+
 
 def labelize_data(request_value,quest): 
     question = str(quest)+'\n {}'.format(request_value)
