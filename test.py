@@ -1,4 +1,5 @@
 import streamlit as st
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from PIL import Image
 import random
 import numpy as np
@@ -9,9 +10,30 @@ from matplotlib import pyplot as plt
 
 st.set_page_config(layout="wide")
 def dataset_preprocessing(df):
-    #removing NAN or handling nan
-    #Categorical to Number
-    #Scaling
+
+    # Clean useless data
+    df.replace("", float("NaN"), inplace=True)
+    df.dropna(inplace=True)
+
+    transformed_df = df
+
+    # Get columns that are not usable
+    filteredColumns = transformed_df.dtypes[df.dtypes == np.object]
+    list_of_columns = list(filteredColumns.index)
+
+    # Transform those columns into usable one
+    transformed_df[list_of_columns] = transformed_df[list_of_columns].apply(lambda col:pd.Categorical(col).codes)
+
+    # Scale the two dataframes
+    scaler = MinMaxScaler()
+
+    df = scaler.transform(df)
+    transformed_df = scaler.transform(transformed_df)
+
+    #return the two dataframes
+    return df, transformed_df
+
+
 def labelize_data(X): 
     question = 'cette donnée correspond-elle à une tumeur cancereuse(1) ou non(à):\n {}'.format(X)
     y = input(question)
