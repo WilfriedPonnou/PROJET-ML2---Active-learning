@@ -18,8 +18,8 @@ def dataset_preprocessing(df):
     transformed_df = df
 
     # Get columns that are not usable
-    filteredColumns = transformed_df.dtypes[df.dtypes == np.object]
-    list_of_columns = list(filteredColumns.index)
+    filtered_columns = transformed_df.dtypes[df.dtypes == np.object]
+    list_of_columns = list(filtered_columns.index)
 
     # Transform those columns into usable one
     transformed_df[list_of_columns] = transformed_df[list_of_columns].apply(lambda col:pd.Categorical(col).codes)
