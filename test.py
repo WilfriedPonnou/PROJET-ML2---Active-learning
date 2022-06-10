@@ -6,6 +6,11 @@ import numpy as np
 import pandas as pd
 import pymodal
 from matplotlib import pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from modAL.models import ActiveLearner
+from modAL.uncertainty import uncertainty_sampling
 
 
 st.set_page_config(layout="wide")
@@ -34,67 +39,59 @@ def dataset_preprocessing(df):
     return df, transformed_df
 
 
-def labelize_data(X): 
-    question = 'cette donnée correspond-elle à une tumeur cancereuse(1) ou non(à):\n {}'.format(X)
+def labelize_data(request_value,quest): 
+    question = str(quest)+'\n {}'.format(request_value)
     y = input(question)
     
     return np.array([int(y)])
 
-def load_image(image_file):
-    img = Image.open(image_file)
-    return img
-
-choice= st.sidebar.radio('Select one:', ['Letters dataset active learning', 'My image dataset active learning','Normal dataset active learning'])
-
-
-if choice == 'My image dataset active learning':
-    
-    with st.expander("1)Test Part, expand me 1st",expanded=True):
-        with st.form(key='my_form'):
-            classes = st.text_input('List the possible classes seperated with a ","')
-            nb_of_images = st.text_input('Number of images')
-            st.form_submit_button("Let's go")
+def training_loop(X,X_train):
+    for i in range(10):
         
-    classes=classes.split(",")
+        # récupération de la donnée à labeliser
+        id_tolabel, X_to_label = learner.query(X_train) 
+        y = labelize_data(X_to_label,quest)
+        
+        # ajout des données à l'ensemble de train et train
+        learner.teach(X_to_label.values, y)
+        
+        #suppression de la donnée labelisée pour ne pas l'avoir à nouveau
+        X_train = pd.DataFrame(np.delete(X_train.values, id_tolabel, 0))
+        
+        #todo calculer le score du modelµ
+   
+        print(learner.score(X_test, y_test))
+
+choice= st.sidebar.radio('Select one:', ['Normal dataset active learning'])
+
+if choice == 'Normal dataset active learning':
     
-    #st.write(classes,nb_of_images)
-    st.write("Expand this part in 2nd to labelize test data, then unexpand it when you are done")
-    with st.expander("2)Test lablezing",expanded=False):
-        if nb_of_images!='' and int(nb_of_images)>10:
-            st.write("Let's make it 70/30")
-            
-            test_image_size=int(int(nb_of_images)*0.3)
-            
-            st.write("Let's labellize ",test_image_size," images")
-            
-            st.subheader("Upload your "+str(test_image_size)+" test images, all at once")
-
-            test_image_list=[]
-            
-            uploaded_files= st.file_uploader("Upload Images",type=["png","jpg","jpeg"], accept_multiple_files = True)
-            
-            keys = random.sample(range(1000, 9999), test_image_size)
-            
-            if uploaded_files is not None:
-                
-                for i,image_file in enumerate(uploaded_files):
-                    image = load_image(image_file)
-                    st.image(image, width=250)
-                    img_array = np.array(image)
-                    image_label=st.selectbox('Pick', classes, key=f"label_{i}")
-                    test_image_list.append((image_label,image))
-  
-                st.write(test_image_list)
-            else:
-                st.write(" Hahaha, nice joke --', please now upload your files")
-
-        else:
-            st.write("please upload more images")
-#    with st.expander("3)Active learning:",expanded=False):
-elif choice == 'Normal dataset active learning':
-    with st.expander("Your dataset, assuming that label is in last column" ,expanded=False):
-        uploaded_files= st.file_uploader("Upload Dataset",type=["csv"], accept_multiple_files = True)
+    with st.expander("Your dataset, assuming that label is in last column" ,expanded=True):
+        
+        uploaded_files = st.file_uploader("Upload Dataset", type=["csv"], accept_multiple_files = False)
+        
         if uploaded_files is not None:
-            df=pd.read_csv(uploaded_files)
-            df_feature = df[["size","p53_concentration"]]
+            df = pd.read_csv(uploaded_files)
+            df_feature = df.drop(df.columns[-1],axis=1)
+            st.write(df.head())
+            st.write(df_feature.head())
+    
+    with st.expander("Labelling Function" ,expanded=False):
+        
+        quest = st.text_input("Label Question")
+        
+        if quest:
+            st.write(quest)
+        
+        X_train, X_test, y_train, y_test = train_test_split(df_feature, df[df.columns[-1]])
 
+        scaler = MinMaxScaler()
+        X_train = scaler.fit_transform(X_train)
+
+        model = LogisticRegression()
+        learner = ActiveLearner(
+        estimator = model,
+        query_strategy=uncertainty_sampling,
+        X_training=X_train, y_training=y_train
+        )
+        training_loop(X_test,X_train)
