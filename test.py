@@ -41,22 +41,25 @@ def dataset_preprocessing(df):
 
 def labelize_data(request_value,quest): 
     question = str(quest)+'\n {}'.format(request_value)
-    y = input(question)
-    
-    return np.array([int(y)])
+    st.write(question)
+    i=np.random.randint(100)
+    y = st.text_input("Your answer",key=f"label_{i}")
+    y_return=str(y)
+    return np.array([int(y_return)])
 
-def training_loop(X,X_train):
+def training_loop(X_train,X_test,y_test,quest):
     for i in range(10):
         
         # récupération de la donnée à labeliser
-        id_tolabel, X_to_label = learner.query(X_train) 
-        y = labelize_data(X_to_label,quest)
+        id_tolabel, x_to_label = learner.query(X_train) 
         
+        y = labelize_data(x_to_label,quest)
+        print(type(x_to_label))
         # ajout des données à l'ensemble de train et train
-        learner.teach(X_to_label.values, y)
+        learner.teach(x_to_label, y)
         
         #suppression de la donnée labelisée pour ne pas l'avoir à nouveau
-        X_train = pd.DataFrame(np.delete(X_train.values, id_tolabel, 0))
+        X_train = pd.DataFrame(np.delete(X_train, id_tolabel, 0))
         
         #todo calculer le score du modelµ
    
@@ -71,7 +74,9 @@ if choice == 'Normal dataset active learning':
         uploaded_files = st.file_uploader("Upload Dataset", type=["csv"], accept_multiple_files = False)
         
         if uploaded_files is not None:
+            global df
             df = pd.read_csv(uploaded_files)
+            global df_feature
             df_feature = df.drop(df.columns[-1],axis=1)
             st.write(df.head())
             st.write(df_feature.head())
@@ -83,15 +88,14 @@ if choice == 'Normal dataset active learning':
         if quest:
             st.write(quest)
         
-        X_train, X_test, y_train, y_test = train_test_split(df_feature, df[df.columns[-1]])
+            X_train, X_test, y_train, y_test = train_test_split(df_feature, df[df.columns[-1]].values)
 
-        scaler = MinMaxScaler()
-        X_train = scaler.fit_transform(X_train)
-
-        model = LogisticRegression()
-        learner = ActiveLearner(
-        estimator = model,
-        query_strategy=uncertainty_sampling,
-        X_training=X_train, y_training=y_train
-        )
-        training_loop(X_test,X_train)
+            scaler = MinMaxScaler()
+            X_train = scaler.fit_transform(X_train)
+            model = LogisticRegression()
+            learner = ActiveLearner(
+            estimator = model,
+            query_strategy=uncertainty_sampling,
+            X_training=X_train, y_training=y_train
+            )
+            training_loop(X_train,X_test,y_test,quest)
