@@ -14,11 +14,18 @@ from streamlit.state.session_state import SessionState
 
 st.set_page_config(layout="wide")
 def dataset_preprocessing(uploaded_files):
+    
+    # Import dataframe
     df = pd.read_csv(uploaded_files)
+    
     # Clean useless data
     df.replace("", float("NaN"), inplace=True)
     df.dropna(inplace=True)
 
+    # Get the name of all columns
+    all_columns = list(df.columns.values)
+
+    # Create the work dataframe
     transformed_df = df
 
     # Get columns that are not usable
@@ -35,7 +42,7 @@ def dataset_preprocessing(uploaded_files):
     transformed_df = scaler.fit_transform(transformed_df)
 
     #return the two dataframes
-    return df, transformed_df
+    return [pd.DataFrame(df,columns= all_columns), pd.DataFrame(transformed_df,columns= all_columns)]
 
 def compare_label(df):
     nb_col = len(df.columns) - 2
