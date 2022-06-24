@@ -21,7 +21,7 @@ def dataset_preprocessing(uploaded_files):
     # Clean useless data
     df.replace("", float("NaN"), inplace=True)
     df.dropna(inplace=True)
-    st.write(df)
+    #st.write(df)
     # Get the name of all columns
     all_columns = list(df.columns.values)
 
@@ -58,6 +58,7 @@ with st.expander("Your dataset, assuming that label is in last column" ,expanded
         global df_feature
         df_feature = df.drop(columns=df.columns[-1],axis=1)
         global df_user
+        uploaded_files.seek(0)
         df_user=pd.read_csv(uploaded_files)
         st.write(df_user.head())
         st.write(df_transformed.head())
@@ -112,7 +113,7 @@ if choice == 'Normal dataset active learning':
 
                     id_tolabel, x_to_label = learner.query(st.session_state['x_train']) 
                     quest_holder.write(quest)
-                    x_holder.write(df_user.iloc[id_tolabel])
+                    x_holder.write(df.iloc[id_tolabel])
 
                     y =input_holder.text_input("Your answer",key=f"label_{st.session_state['i']}")
                     if not y:
@@ -150,6 +151,7 @@ if choice == 'Normal dataset active learning':
                     st.write("New Score: ", learner.score(X_test, y_test))
                     st.write("New Loss: ", log_loss(y_test,learner.predict(X_test)))
                     st.write("New f1_score: ", f1_score(y_test,learner.predict(X_test)))
+                    st.write("Iteration number: ", st.session_state['i'])
                     #st.write(st.session_state['nb_queries'])
                     #st.write(st.session_state['accuracy_score'])
                     #st.write(st.session_state['loss'])
@@ -160,19 +162,22 @@ if choice == 'Normal dataset active learning':
                         quest_holder.empty()
                         x_holder.empty()
 
-                    else:
-                        del st.session_state['i']
+
                 input_holder.empty()
                 quest_holder.empty()
                 x_holder.empty()
-                best_accuracy=max(st.session_state['accuracy_score'])
-                best_f1_score=max(st.session_state['f1_score'])
+                best_accuracy=max(st.session_state['accuracy_score'][2:])
+                best_f1_score=max(st.session_state['f1_score'][2:])
                 y_pred=learner.predict(X_test)
-                best_loss=min(st.session_state['loss'])
+                best_loss=min(st.session_state['loss'][2:])
+                iterations=st.session_state['i']
                 st.write("The best accuracy obtained is:", best_accuracy)
                 st.write("It was achieved at the ",[index for index, item in enumerate(st.session_state['accuracy_score']) if item == best_accuracy]," th iterations")
-                st.write("The best lost obtained is ",best_loss)
+                st.write("The best loss obtained is ",best_loss)
+                st.write("It was achieved at the ",[index for index, item in enumerate(st.session_state['loss']) if item == best_loss]," th iterations")
                 st.write("The best f1_score ",best_f1_score)
+                st.write("It was achieved at the ",[index for index, item in enumerate(st.session_state['f1_score']) if item == best_f1_score]," th iterations")
+                st.write("Number of iterations: ",iterations)
 
 
 if choice == 'Plots for correlation':
